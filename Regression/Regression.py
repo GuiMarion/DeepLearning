@@ -19,25 +19,20 @@ from keras import backend as K
 import random
 
 
-def load_data1():
-    dataframe = pandas.read_csv("housing.data.txt", delim_whitespace=True, header=None)
-    dataset = dataframe.values
-    # split into input (X) and output (Y) variables
-    X = dataset[:,0:13]
-    Y = dataset[:,13]
-
-    return X, Y
-
-
+# For the succesor function
 def f2(x):
     return x +1
 
+# Compute the sum of a list 
 def Sum(L):
     N = 0
     for elem in L:
         N += elem
     return N
 
+
+# Load data for the sum, I didn't use validation set for this one, I just check on some 
+# random values in the last function.
 def load_data():
     X = np.random.uniform(1, 10000, [5000, 13])
     Y = []
@@ -50,6 +45,8 @@ def load_data():
 
     return X, Y
 
+# Load data for the succesor, I didn't use validation set for this one, I just check on some 
+# random values in the last function.
 def load_data2():
     X = []
     Y = []
@@ -63,6 +60,9 @@ def load_data2():
 
     return X, Y
 
+
+# Load data for the addition, I didn't use validation set for this one, I just check on some 
+# random values in the last function.
 def load_data3():
     X = np.random.uniform(1, 1000, [5000, 2])
     Y = []
@@ -74,10 +74,16 @@ def load_data3():
     Y = np.array(Y)
 
     for i in range(len(X)):
-    	print(X[i], Y[i])
+        print(X[i], Y[i])
 
     return X, Y
 
+
+
+# Load data for the multiplication, I choose randomely 1/3 of the dataset for the validation set.
+# So the training set contains the first 10 000 possibilities for multiplication, without
+# the ones for the validation set. It is an easy-to-train set, if you want to make it trickier,
+# you can uncomment the code above and work on a larger numeric domain. 
 def load_data4():
     X = []
     Y = []
@@ -108,13 +114,13 @@ def load_data4():
     Y_test = []
 
     for x1 in range(1,100):
-    	for x2 in range(1, 100):
-    		if random.randint(1,3) == 3:
-    			X_test.append([x1,x2])
-    			Y_test.append(x1*x2)
-    		else:	
-    			X.append([x1,x2])
-    			Y.append(x1*x2)
+        for x2 in range(1, 100):
+            if random.randint(1,3) == 3:
+                X_test.append([x1,x2])
+                Y_test.append(x1*x2)
+            else:   
+                X.append([x1,x2])
+                Y.append(x1*x2)
 
     X = np.array(X).astype(float)
     Y = np.array(Y).astype(float)
@@ -125,6 +131,7 @@ def load_data4():
     return (X, Y), (X_test, Y_test)
 
 
+# Some exemples of models if you want (I don't use them here)
 def basic_model():
     # create model
     model = Sequential()
@@ -134,7 +141,7 @@ def basic_model():
     model.compile(loss='mean_squared_error', optimizer='adam')
     return model
 
-
+# Some exemples of models if you want (I don't use them here)
 def deeper_model():
     # create model
     model = Sequential()
@@ -145,7 +152,7 @@ def deeper_model():
     model.compile(loss='mean_squared_error', optimizer='adam')
     return model
 
-
+# Some exemples of models if you want (I don't use them here)
 def wider_model():
     # create model
     model = Sequential()
@@ -155,19 +162,8 @@ def wider_model():
     model.compile(loss='mean_squared_error', optimizer='adam')
     return model
 
-
-def train(X, Y, fn, standardize=True, seed=7):
-    estimators = []
-    if standardize:
-        estimators.append(('standardize', StandardScaler()))
-    estimators.append(('mlp', KerasRegressor(build_fn=fn, epochs=30, batch_size=5, verbose=0)))
-    pipeline = Pipeline(estimators)
-    kfold = KFold(n_splits=10, random_state=seed)
-    results = cross_val_score(pipeline, X, Y, cv=kfold)
-    print(estimators)
-    print('Result: %.2f (%.2f) MSE' % (results.mean(), results.std()))
-
-
+# Model for the Sum, it get 13 integers as input and return the sum of these 13 integers.
+# It's an easy one.
 def model1(X,Y):
     # create model
     model = Sequential()
@@ -179,19 +175,32 @@ def model1(X,Y):
 
     return model
 
+# Model for the Succesor, takes one intger and return its succosor (n+1)
+# suprising, it's harder-to-train then the sum. 
 def model2(X,Y):
-    np.random.seed(7)
+    # You can use this, it's define a seed for random number generation for the reproductability. 
+    #np.random.seed(7)
  
     # create model
     model = Sequential()
-    model.add(Dense(1, input_dim=1, kernel_initializer='normal', activation='relu'))
-    model.add(Dense(1, kernel_initializer='normal'))
+    model.add(Dense(20, input_dim=1, activation='relu'))
+    model.add(Dense(20, activation='relu'))
+    model.add(Dense(20, activation='relu'))
+    model.add(Dense(10, activation='relu'))
+    model.add(Dense(1,))
     # compile model
-    model.compile(loss='mean_squared_error', optimizer='adam')
-    model.fit(x=X, y=Y, batch_size=30   , epochs=1000, verbose=1)
+
+    sgd = optimizers.Adam(lr=1e-4)
+    model.compile(loss='mean_squared_error', optimizer=sgd)
+
+    model.fit(x=X, y=Y, batch_size=30   , epochs=500, verbose=1, 
+        callbacks=[ReduceLROnPlateau(monitor='loss', factor=0.5, epsilon=0.0000001, verbose=1)])
 
     return model
 
+
+# Model for the Sum, it get 13 integers as input and return the sum of these 13 integers.
+# It's an easy one.
 def model3(X,Y): 
     # create model
     model = Sequential()
@@ -199,35 +208,47 @@ def model3(X,Y):
     model.add(Dense(1, kernel_initializer='normal'))
     # compile model
     model.compile(loss='mean_squared_error', optimizer='adam')
-    model.fit(x=X, y=Y, batch_size=5   , epochs=100, verbose=1)
+    model.fit(x=X, y=Y, batch_size=64   , epochs=100, verbose=1)
 
     return model
 
+
+# Loss function we definied for the multiplication, indeed the mse doesn't work well
+# because a mistake in big numbers is bigger problem then in small ones. It's because
+# the loss is not balanced with the size of the expected number.
 def myloss(y_true, y_pred):
 
-	return K.mean(K.square((y_pred-y_true)/y_true))
+    return K.mean(K.square((y_pred-y_true)/y_true))
 
 
 
-
+# Model for the Multiplication, N^2 -> N, returns le mult of two integers. 
+# It's not a so-easy one. That's why we add more and bigger layers. 
+# The accuracy is not about 100% but it works enought to be convinced that it's working.
+# The callback function is for decreasing the learning rate when we get stuck in 
+# a plateau. 
 def model4(X,Y): 
     # create model
     model = Sequential()
-    model.add(Dense(16, input_dim=2, activation='relu'))
+    model.add(Dense(36, input_dim=2, activation='relu'))
+    model.add(Dense(36, activation='relu'))
+    model.add(Dense(26, activation='relu'))
     model.add(Dense(16, activation='relu'))
     model.add(Dense(16, activation='relu'))
-    model.add(Dense(16,  activation='relu'))
+    model.add(Dense(8,  activation='relu'))
     model.add(Dense(1), )
     # compile model
     sgd = optimizers.Adam(lr=1e-3)
-    model.compile(loss='mse', optimizer=sgd)
+    model.compile(loss=myloss, optimizer=sgd)
 
     model.fit(x=X, y=Y, batch_size=64   , epochs=400, verbose=1,
-    	callbacks=[ReduceLROnPlateau(monitor='loss', factor=0.5, epsilon=0.0001, verbose=1)]
+        callbacks=[ReduceLROnPlateau(monitor='loss', factor=0.5, epsilon=0.0001, verbose=1)]
     )
 
     return model
 
+
+# Training function for the Sum
 def Somme():
     pred = []
     N = 784
@@ -262,16 +283,39 @@ def Somme():
         print("True: ", Sum(pred2))
         print("VS : Time execution",timeit.default_timer() - start_time,"s")
 
+# Training function for the Succesor
 def Succ():
-    X, Y = load_data2()
-    model = model2(X,Y)
-    pred = []
-    pred.append(1500)
-    pred = np.array(pred)
+    pred = (np.random.randint(2000))
+    pred2 = np.array([pred])
 
-    print("1500:",model.predict(pred, verbose=0))
-    print("True: 1501")
+    if not os.path.isfile("Succ.h5"):
+        X, Y = load_data2()
+        model = model2(X,Y)
+        # serialize model to JSON
+        model_json = model.to_json()
+        with open("Succ.json", "w") as json_file:
+            json_file.write(model_json)
+        # serialize weights to HDF5
+        model.save_weights("Succ.h5")
+        print("Model saved to disk")
+        print(pred,":",model.predict(pred2, verbose=0))
+        print("True:", pred+1)
+    else: 
+        # load json and create model
+        json_file = open('Succ.json', 'r')
+        loaded_model_json = json_file.read()
+        json_file.close()
+        loaded_model = model_from_json(loaded_model_json)
+        loaded_model.load_weights("Succ.h5")
+        print("Loaded model from disk")
+        start_time = timeit.default_timer()
+        print("Prediction:",round(float(loaded_model.predict(pred2, verbose=0)[0])))
+        print("Time execution",timeit.default_timer() - start_time,"s")
+        start_time = timeit.default_timer()
+        print("True:",pred + 1 )
+        print("VS : Time execution",timeit.default_timer() - start_time,"s")
 
+# Training function for the Addition
 def Add():
 
     pred = []
@@ -305,6 +349,8 @@ def Add():
         print("True:",pred[0] +pred[1] )
         print("VS : Time execution",timeit.default_timer() - start_time,"s")
 
+
+# Training function for the Multiplication
 def Mult():
     pred2 = np.random.randint(size=(1,2),low=1,high=100).astype(float)
     pred = pred2[0]
@@ -321,7 +367,7 @@ def Mult():
         print("Model saved to disk")
 
         for i in range(10):
-        	print(round(float(model.predict((np.array([X_test[i]])), verbose=0)[0])), Y_test[i])
+            print(round(float(model.predict((np.array([X_test[i]])), verbose=0)[0])), Y_test[i])
         
         scores = model.evaluate(X_test, Y_test)
         print()
@@ -345,19 +391,12 @@ def Mult():
         print("True:",pred[0] *pred[1] )
         print("VS : Time execution",timeit.default_timer() - start_time,"s")
 
-
+# Main, uncomment the function you want. 
 if __name__ == '__main__':
 
     #Somme()
     #Add()
-    Mult()
-    #train(X, Y, fn=basic_model, standardize=False, seed=7)
-    #train(X, Y, fn=basic_model, standardize=True,  seed=7)
-    #train(X, Y, fn=deeper_model, standardize=True,  seed=7)
-    #print(X[3],":",basic_model().predict(X[3:4]))
-    #print("True: ", Y[3])
-    #train(X, Y, fn=wider_model,  standardize=True,  seed=7)
-
-
+    Succ()
+    #Mult()
 
 
